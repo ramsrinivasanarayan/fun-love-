@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Do you love me? — playful</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#ff5c93;--muted:#9aa7c7}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{display:grid;place-items:center;background:linear-gradient(180deg,#0b1020 0%, #071328 100%);color:#e6eef8}
+    .card{width:min(720px,92vw);background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent);padding:36px;border-radius:18px;box-shadow:0 10px 30px rgba(3,7,18,0.6);border:1px solid rgba(255,255,255,0.03);text-align:center}
+    h1{font-size:clamp(1.6rem,3.4vw,2.4rem);margin:0 0 6px}
+    p.lead{color:var(--muted);margin:0 0 18px}
+    .heart{font-size:56px;display:inline-block;transform-origin:center;transition:transform .25s}
+    .buttons{display:flex;gap:14px;justify-content:center;margin-top:20px}
+    button{background:transparent;border:2px solid rgba(255,255,255,0.06);padding:12px 20px;border-radius:12px;color:inherit;font-weight:600;cursor:pointer;backdrop-filter:blur(4px)}
+    button.primary{background:linear-gradient(90deg,var(--accent),#ff9bb3);border:none;color:#071328}
+    button.avoid{position:relative}
+    .small{font-size:.9rem;color:var(--muted);margin-top:12px}
+
+    /* floating hearts */
+    .floating-spot{position:absolute;left:50%;top:10px;transform:translateX(-50%);pointer-events:none}
+
+    /* confetti canvas */
+    canvas#confetti{position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:999}
+
+    footer{margin-top:18px;color:var(--muted);font-size:.82rem}
+
+    @media (max-width:420px){.heart{font-size:40px}}
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <div class="card">
+    <div style="position:relative;">
+      <div class="floating-spot">
+        <span class="heart" id="bigHeart">❤️</span>
+      </div>
+    </div>
+    <h1>Do you love me?</h1>
+    <p class="lead">Be honest — pick one. (Try not to let the <em>No</em> button escape you 😉)</p>
+
+    <div class="buttons">
+      <button class="primary" id="yesBtn">Yes — I do 💖</button>
+      <button class="avoid" id="noBtn">No — I can't</button>
+    </div>
+
+    <p class="small">Tip: On mobile, try tapping 'No' — it might run away.</p>
+    <footer>Made with ♥︎ — Ram</footer>
+  </div>
+
+  <script>
+    const noBtn = document.getElementById('noBtn')
+    const yesBtn = document.getElementById('yesBtn')
+    const bigHeart = document.getElementById('bigHeart')
+
+    setInterval(()=>{
+      bigHeart.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.15)' },
+        { transform: 'scale(1)' }
+      ], { duration: 900, easing: 'ease-in-out' })
+    }, 1000)
+
+    let dodgeCount = 0
+
+    function randomOffset(max){
+      return Math.floor(Math.random()* (max-40))
+    }
+
+    function dodgeNo(){
+      dodgeCount++
+      const parentWidth = document.body.clientWidth
+      const btnWidth = noBtn.offsetWidth
+      if(dodgeCount < 6){
+        const x = Math.random() > 0.5 ? 1 : -1
+        noBtn.style.transform = `translateX(${x * (80 + dodgeCount*12)}px)`
+      } else {
+        const left = Math.max(8, randomOffset(parentWidth - btnWidth - 20))
+        noBtn.style.position = 'absolute'
+        noBtn.style.left = left + 'px'
+        noBtn.style.top = (120 + Math.random()*120) + 'px'
+      }
+    }
+
+    noBtn.addEventListener('mouseenter', dodgeNo)
+    noBtn.addEventListener('click', (e)=>{
+      if(dodgeCount < 6){
+        e.preventDefault(); dodgeNo();
+      } else {
+        e.preventDefault();
+        alert("Okay fine — you win. But maybe say Yes instead? ❤")
+      }
+    })
+
+    yesBtn.addEventListener('click', ()=>{
+      launchConfetti();
+      yesBtn.innerText = 'Yay! 💖';
+      yesBtn.disabled = true;
+      bigHeart.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(2) rotate(10deg)', opacity:1 },
+        { transform: 'scale(0.2)', opacity:0 }
+      ], { duration: 700, easing:'cubic-bezier(.2,.9,.3,1)' })
+      setTimeout(()=>{
+        bigHeart.style.opacity = '0';
+        setTimeout(()=>{ bigHeart.style.opacity = '1'; yesBtn.disabled = false; yesBtn.innerText='Yes — I do 💖' }, 1600)
+      }, 700)
+    })
+
+    function launchConfetti(){
+      const canvas = document.getElementById('confetti')
+      const ctx = canvas.getContext('2d')
+      const W = canvas.width = window.innerWidth
+      const H = canvas.height = window.innerHeight
+      const pieces = []
+      const colors = ['#ff4d7e','#ffd166','#6fe7c3','#8ad3ff','#c78cff']
+
+      for(let i=0;i<120;i++){
+        pieces.push({
+          x: Math.random()*W, y: Math.random()*H - H/2,
+          r: (Math.random()*8)+6, d: (Math.random()*0.02)+0.01,
+          vx: (Math.random()-0.5)*6, vy: Math.random()*6 + 2,
+          color: colors[Math.floor(Math.random()*colors.length)], rot: Math.random()*360, vr: (Math.random()-0.5)*10
+        })
+      }
+
+      let t = 0
+      function frame(){
+        ctx.clearRect(0,0,W,H)
+        for(let p of pieces){
+          p.x += p.vx
+          p.y += p.vy + Math.sin(t + p.d*100)
+          p.rot += p.vr
+          ctx.save()
+          ctx.translate(p.x,p.y)
+          ctx.rotate(p.rot * Math.PI/180)
+          ctx.fillStyle = p.color
+          ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.6)
+          ctx.restore()
+        }
+        t += 0.02
+      }
+      const id = setInterval(frame, 1000/60)
+      setTimeout(()=>{ clearInterval(id); ctx.clearRect(0,0,W,H) }, 3200)
+    }
+
+    window.addEventListener('resize', ()=>{
+      const c = document.getElementById('confetti'); c.width = window.innerWidth; c.height = window.innerHeight
+    })
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key.toLowerCase()==='y') yesBtn.click()
+      if(e.key.toLowerCase()==='n'){
+        dodgeNo();
+      }
+    })
+  </script>
+</body>
+</html>
